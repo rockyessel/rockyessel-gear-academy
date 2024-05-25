@@ -1,107 +1,84 @@
-#![cfg(test)]
+#![no_std]
 
-use pebbles_game::*;
+use gstd::Encode;
+use gtest::System;
 use pebbles_game_io::*;
 
-#[test]
-fn test_turn_valid_move() {
-    let mut game_state = GameState {
-        difficulty: DifficultyLevel::Easy,
-        pebbles_count: 10,
-        max_pebbles_per_turn: 3,
-        pebbles_remaining: 10,
-        first_player: Player::User,
-        winner: None,
+fn init_game(
+    sys: &System,
+    difficulty: DifficultyLevel,
+    pebbles_count: u32,
+    max_pebbles_per_turn: u32,
+) -> &gtest::Program {
+    let init_msg = PebblesInit {
+        difficulty,
+        pebbles_count,
+        max_pebbles_per_turn,
     };
-
-    let event = game_state.turn(2);
-    assert_eq!(game_state.pebbles_remaining, 8);
-    assert_eq!(event, PebblesEvent::CounterTurn(1)); // Program's turn
+    let program = sys.get_program(1);
+    let res = program.send(1, init_msg);
+    assert!(res.log().is_some());
+    assert!(res.log().unwrap().contains("Successfully initialized"));
+    program
 }
 
 #[test]
-fn test_turn_invalid_move() {
-    let mut game_state = GameState {
-        difficulty: DifficultyLevel::Easy,
-        pebbles_count: 10,
-        max_pebbles_per_turn: 3,
-        pebbles_remaining: 10,
-        first_player: Player::User,
-        winner: None,
-    };
-
-    let event = game_state.turn(5);
-    assert_eq!(game_state.pebbles_remaining, 10); // No pebbles taken
-    assert_eq!(event, PebblesEvent::CounterTurn(0)); // Invalid move, no pebbles taken
+fn test_init_game() {
+    let sys = System::new();
+    let program = init_game(&sys, DifficultyLevel::Easy, 10, 3);
+    let state: GameState = program.read_state().unwrap();
+    assert_eq!(state.pebbles_remaining, 10);
+    assert_eq!(state.max_pebbles_per_turn, 3);
+    assert_eq!(state.difficulty, DifficultyLevel::Easy);
 }
 
 #[test]
-fn test_turn_user_wins() {
-    let mut game_state = GameState {
-        difficulty: DifficultyLevel::Easy,
-        pebbles_count: 2,
-        max_pebbles_per_turn: 1,
-        pebbles_remaining: 2,
-        first_player: Player::User,
-        winner: None,
-    };
-
-    let event = game_state.turn(2); // User takes the last pebble
-    assert_eq!(game_state.pebbles_remaining, 0);
-    assert_eq!(game_state.winner, Some(Player::User));
-    assert_eq!(event, PebblesEvent::Won(Player::User));
+fn test_user_turn_winning() {
+    let sys = System::new();
+    let program = init_game(&sys, DifficultyLevel::Easy, 3, 3);
+    let res = program.send(1, PebblesAction::Turn(3));
+    assert!(res.contains(&(1, PebblesEvent::Won(Player::User).encode())));
+    let state: GameState = program.read_state().unwrap();
+    assert_eq!(state.pebbles_remaining, 0);
+    assert_eq!(state.winner, Some(Player::User));
 }
 
 #[test]
-fn test_turn_program_wins() {
-    let mut game_state = GameState {
-        difficulty: DifficultyLevel::Easy,
-        pebbles_count: 3,
-        max_pebbles_per_turn: 1,
-        pebbles_remaining: 3,
-        first_player: Player::User,
-        winner: None,
-    };
+fn test_program_turn_winning() {
+    let sys = System::new();
+    let program = init_game(&sys, DifficultyLevel::Hard, 4, 3);
+    let res = program.send(1, PebblesAction::Turn(1));
+    assert!(res.contains(&(1, PebblesEvent::Won(Player::Program).encode())));
+    let state: GameState = program.read_state().unwrap();
+    assert_eq!(state.pebbles_remaining, 0);
+    assert_eq!(state.winner, Some(Player::Program));
+}
 
-    let event = game_state.turn(2); // User takes 2 pebbles, leaving 1 for the program
-    assert_eq!(game_state.pebbles_remaining, 0);
-    assert_eq!(game_state.winner, Some(Player::Program));
-    assert_eq!(event, PebblesEvent::Won(Player::Program));
+#[test]
+fn test_restart_game() {
+    let sys = System::new();
+    let program = init_game(&sys, DifficultyLevel::Easy, 10, 3);
+    let res = program.send(
+        1,
+        PebblesAction::Restart {
+            difficulty: DifficultyLevel::Hard,
+            pebbles_count: 5,
+            max_pebbles_per_turn: 2,
+        },
+    );
+    assert!(res.contains(&(1, PebblesEvent::CounterTurn(0).encode())));
+    let state: GameState = program.read_state().unwrap();
+    assert_eq!(state.pebbles_remaining, 5);
+    assert_eq!(state.max_pebbles_per_turn, 2);
+    assert_eq!(state.difficulty, DifficultyLevel::Hard);
 }
 
 #[test]
 fn test_give_up() {
-    let mut game_state = GameState {
-        difficulty: DifficultyLevel::Easy,
-        pebbles_count: 10,
-        max_pebbles_per_turn: 3,
-        pebbles_remaining: 10,
-        first_player: Player::User,
-        winner: None,
-    };
-
-    let event = game_state.give_up();
-    assert_eq!(game_state.winner, Some(Player::Program));
-    assert_eq!(event, PebblesEvent::Won(Player::Program));
-}
-
-#[test]
-fn test_restart() {
-    let mut game_state = GameState {
-        difficulty: DifficultyLevel::Easy,
-        pebbles_count: 10,
-        max_pebbles_per_turn: 3,
-        pebbles_remaining: 10,
-        first_player: Player::User,
-        winner: Some(Player::Program),
-    };
-
-    let event = game_state.restart(DifficultyLevel::Hard, 15, 4);
-    assert_eq!(game_state.difficulty, DifficultyLevel::Hard);
-    assert_eq!(game_state.pebbles_count, 15);
-    assert_eq!(game_state.max_pebbles_per_turn, 4);
-    assert_eq!(game_state.pebbles_remaining, 15);
-    assert_eq!(game_state.first_player, Player::User);
-    assert_eq!(game_state.winner, None);
-    assert_eq!(event, PebblesEvent::CounterTurn(0)); // Game restarted
+    let sys = System::new();
+    let program = init_game(&sys, DifficultyLevel::Easy, 10, 3);
+    let res = program.send(1, PebblesAction::GiveUp);
+    assert!(res.contains(&(1, PebblesEvent::Won(Player::Program).encode())));
+    let state: GameState = program.read_state().unwrap();
+    assert_eq!(state.winner, Some(Player::Program));
 }
