@@ -132,8 +132,3 @@ Contributions to the Pebbles Game project are welcome. Please open an issue or s
 
 This project is licensed under the MIT License. See the `LICENSE` file for details.
 
-## GitHub Repository
-
-The source code for this project is available on GitHub:
-
-[GitHub Repository](https://github.com/rockyessel/rockyessel-gear-academy/tree/master/pebbles-game)
