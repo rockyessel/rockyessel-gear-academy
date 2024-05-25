@@ -1,0 +1,24 @@
+workspace = { members = ["io"] }
+[package]
+name = "pebbles-game"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+gstd = "1.4.1"
+parity-scale-codec = { version = "3", default-features = false }
+scale-info = { version = "2", default-features = false }
+pebbles-game-io={path = "io"}
+
+
+
+[dev-dependencies]
+gtest = "1.4.1"
+pebbles-game-io={path = "io"}
+pebbles-game={path = "/"}
+
+[build-dependencies]
+gear-wasm-builder = "1.1.0"
+pebbles-game-io={path = "io"}
