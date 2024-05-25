@@ -10,10 +10,10 @@ The project is organized as follows:
 
 - `src/`
   - `lib.rs`: Contains the main logic of the Pebbles Game smart contract.
-  - `pebbles_game_io.rs`: Defines the input/output data structures and the metadata for the Pebbles Game.
+  - `io`: Defines the input/output data structures and the metadata for the Pebbles Game.
   - `utils.rs`: Utility functions used in the game logic.
 - `tests/`
-  - `lib.rs`: Contains the integration tests for the Pebbles Game smart contract.
+  - `basic.rs`: Contains the integration tests for the Pebbles Game smart contract.
 - `Cargo.toml`: Cargo configuration file for the project.
 
 ## Game Logic
