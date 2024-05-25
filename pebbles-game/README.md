@@ -8,9 +8,10 @@ The Pebbles Game is a smart contract implementation of a simple game where playe
 
 The project is organized as follows:
 
+- `io`: Defines the folder that houses the input/output types.
+  - `lib.rs`: Contains the `impl` logic and  data structures and the metadata for the Pebbles Game.
 - `src/`
   - `lib.rs`: Contains the main logic of the Pebbles Game smart contract.
-  - `io`: Defines the input/output data structures and the metadata for the Pebbles Game.
   - `utils.rs`: Utility functions used in the game logic.
 - `tests/`
   - `basic.rs`: Contains the integration tests for the Pebbles Game smart contract.
